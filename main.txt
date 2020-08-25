@@ -1,0 +1,77 @@
+import requests
+from pathlib import Path
+import openpyxl, time , _thread
+import pandas as pd
+import json
+
+def terminator(flag):
+    flag.append(False)
+
+df = pd.read_excel(r'C:\Users\h\Desktop\City_Token.xlsx')
+                                                               
+# creating a list of dataframe columns 
+columns = list(df) 
+  
+for i in df['City']: 
+  
+    # printing the third element of the column 
+    #print (i)
+    def get_Value(i):
+        api_key ="e48b900c2be8c16cf49c2987991ae109"
+        base_url = "http://api.openweathermap.org/data/2.5/weather?"
+        complete_url = base_url + "appid=" + api_key + "&q=" + i
+        weather_data = requests.get(complete_url).json() 
+        #print(api_response['request']['query'])
+        #print (weather_data['main']['humidity'])
+         #print (weather_data['main']['temp']) 
+        return [api_response['request']['query'], api_response['current']['humidity'], api_response['current']['temperature']]
+
+def toFah(temp):
+    return (cel*9//5)+32
+
+def main():
+    xlsx_file = Path(r'C:\Users\h\Desktop\Book1.xlsx')
+    wb_obj = openpyxl.load_workbook(xlsx_file) 
+    sheet = wb_obj.active
+    initial = True
+    tupdated = 0
+    n = sheet.max_row
+    flag =[]
+    _thread.start_new_thread(terminator, (flag,))
+    while not flag:
+        tupdated = 0
+        for i in range(1, n):
+            if((sheet.cell(row = i+1, column = 5).value) == 1 or initial) and not flag:
+                tupdated+=1
+                city = sheet.cell(row = i+1, column = 1).value
+                values = get_Value(city)
+                if(sheet.cell(row = i+1, column = 4).value) == 'C':
+                    sheet.cell(row = i+1, column = 3).value =  values[1]
+          # Update Temperature
+                    sheet.cell(row = i+1, column = 2).value =  values[2]
+          # Save to file
+                    wb_obj.save(r"C:\Users\h\Desktop\Book1.xlsx") 
+                    print(f'Location: \t{values[0]}')
+                    print(f'Humidity: \t{values[1]}')
+                    print(f'Temperature: \t{values[2]}°C')
+                else:
+          # Update Humidity
+                    sheet.cell(row = i+1, column = 3).value =  values[1]
+          # Update Temperature
+                    sheet.cell(row = i+1, column = 2).value =  toFah(values[2])
+          # Save to file
+                    wb_obj.save("Values.xlsx")
+                    print(f'Location: \t{values[0]}')
+                    print(f'Humidity: \t{values[1]}')
+                    print(f'Temperature: \t{toFah(values[2])}°F')
+                    print("----------------------------------------------------") 
+
+                time.sleep(1)
+        initial = False
+
+        if tupdated == 0:
+            print("Nothing to update. Exiting!!")
+            break 
+
+if  __name__ == "__main__":
+    main()
